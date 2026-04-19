@@ -4,8 +4,8 @@ import cv2
 import tkinter as tk
 from tkinter import filedialog, Label, Button
 from PIL import Image, ImageTk
+import os
 
-# Incarca modelul
 model = tf.keras.models.load_model('flower_model.keras')
 class_names = ['daisy', 'dandelion', 'rose', 'sunflower', 'tulip']
 class_names_ro = {
@@ -17,19 +17,22 @@ class_names_ro = {
 }
 
 def predict_flower(img_path):
-    img = cv2.imread(img_path)
+    if img_path.lower().endswith('.webp'):
+        pil_img = Image.open(img_path).convert('RGB')
+        img = np.array(pil_img)[:, :, ::-1]
+    else:
+        img = cv2.imread(img_path)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_resized = cv2.resize(img_rgb, (224, 224))
     img_array = tf.expand_dims(img_resized, 0)
     predictions = model.predict(img_array, verbose=0)
-    score = tf.nn.softmax(predictions[0])
-    predicted_class = class_names[np.argmax(score)]
-    confidence = 100 * np.max(score)
+    predicted_class = class_names[np.argmax(predictions[0])]
+    confidence = 100 * np.max(predictions[0])
     return predicted_class, confidence
 
 def open_image():
     file_path = filedialog.askopenfilename(
-        filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp")]
+        filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.webp")]
     )
     if not file_path:
         return
@@ -48,7 +51,6 @@ def open_image():
         fg=color
     )
 
-# Interfata
 root = tk.Tk()
 root.title("Flower Detection")
 root.geometry("500x620")
